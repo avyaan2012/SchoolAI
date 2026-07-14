@@ -7,3 +7,8 @@ const GOOGLE_CLIENT_ID = "138041635688-obckndeapof73mat9tqjdv8q4eg2cdsi.apps.goo
 // paste the full Vercel API URL here, like:
 // const AI_API_URL = "https://your-vercel-app.vercel.app/api/generate-quiz";
 const AI_API_URL = "";
+
+// Optional separate endpoints. Leave blank when the whole project is on Vercel.
+const AI_REVIEW_URL = "";
+const AI_QUESTION_HELP_URL = "";
+

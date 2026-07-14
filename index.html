@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClassQuiz AI - Slides + Gemini</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="showPage('home')">
+      <div class="logo">CQ</div>
+      <div>
+        <h1>ClassQuiz AI</h1>
+        <p>Slides + AI test version</p>
+      </div>
+    </div>
+    <nav>
+      <button onclick="showPage('home')">Home</button>
+      <button onclick="showPage('dashboard')">Dashboard</button>
+      <button onclick="showPage('quizSetup')">Practice Quiz</button>
+      <button onclick="showPage('settings')">Settings</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="page active">
+      <div class="hero">
+        <div>
+          <span class="pill">Student-only Google Classroom sync</span>
+          <h2>Connect Google Classroom, read Slides, and generate AI questions.</h2>
+          <p class="big-text">
+            This version has <strong>no demo fallback</strong>. It imports real Google Classroom materials,
+            tries to read text from attached Google Slides, and uses Gemini to generate practice questions.
+          </p>
+          <div class="hero-actions">
+            <button class="primary" onclick="connectGoogleClassroom()">Connect Google Classroom</button>
+            <button class="secondary" onclick="showPage('dashboard')">Go to Dashboard</button>
+          </div>
+          <p class="tiny-note">
+            Before testing, edit <strong>config.js</strong> and paste your Google OAuth Web Client ID.
+          </p>
+        </div>
+        <div class="hero-card">
+          <h3>Real sync flow</h3>
+          <ol>
+            <li>Click Connect Google Classroom.</li>
+            <li>Approve Google permissions.</li>
+            <li>The app imports your classes and materials.</li>
+            <li>The app reads attached Google Slides when permissions allow it.</li>
+            <li>Generate AI practice questions from the imported content.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div id="statusBox" class="status-box"></div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>No fake data</h3>
+          <p>This version will not create sample classes. If Google sync fails, it shows the error.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Read-only access</h3>
+          <p>It requests read-only Classroom scopes, so it does not edit or delete class content.</p>
+        </div>
+        <div class="feature-card">
+          <h3>AI backend required</h3>
+          <p>For Gemini AI generation, deploy on Vercel or connect this site to a Vercel API endpoint.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="dashboard" class="page">
+      <div class="page-title-row">
+        <div>
+          <h2>Student Dashboard</h2>
+          <p id="connectionText">Not connected yet.</p>
+        </div>
+        <button class="primary" onclick="connectGoogleClassroom()">Sync Google Classroom</button>
+      </div>
+
+      <div id="syncStatus" class="status-box"></div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span>Imported Classes</span>
+          <strong id="classCount">0</strong>
+        </div>
+        <div class="stat-card">
+          <span>Imported Resources</span>
+          <strong id="resourceCount">0</strong>
+        </div>
+        <div class="stat-card">
+          <span>Practice Attempts</span>
+          <strong id="attemptCount">0</strong>
+        </div>
+      </div>
+
+      <h3>Your Google Classroom Classes</h3>
+      <div id="classList" class="card-grid"></div>
+
+      <h3>Recent Results</h3>
+      <div id="recentResults" class="stack"></div>
+    </section>
+
+    <section id="classPage" class="page">
+      <button class="text-button" onclick="showPage('dashboard')">← Back to dashboard</button>
+      <div id="classDetails"></div>
+    </section>
+
+    <section id="quizSetup" class="page">
+      <h2>Generate a Practice Quiz</h2>
+      <p>This version sends imported Classroom text and readable Google Slides text to an AI backend to create practice questions.</p>
+
+      <form class="setup-card" onsubmit="event.preventDefault(); startQuiz();">
+        <label>
+          Class
+          <select id="quizClassSelect"></select>
+        </label>
+
+        <label>
+          Quiz topic
+          <input id="topicInput" placeholder="Example: cell organelles, photosynthesis, equations" />
+        </label>
+
+        <label>
+          Number of questions
+          <select id="questionCountSelect">
+            <option selected>15</option>
+            <option>20</option>
+            <option>25</option>
+          </select>
+        </label>
+
+        <button class="primary" type="submit">Generate Quiz</button>
+      </form>
+    </section>
+
+    <section id="quizPage" class="page">
+      <div class="page-title-row">
+        <div>
+          <h2 id="quizTitle">Practice Quiz</h2>
+          <p id="quizSourceNote">Generated from imported Google Classroom resources.</p>
+        </div>
+        <span id="progressBadge" class="badge">Question 1</span>
+      </div>
+      <div id="questionBox" class="quiz-box"></div>
+      <div class="quiz-actions">
+        <button class="secondary" onclick="previousQuestion()">Previous</button>
+        <button class="secondary" onclick="nextQuestion()">Next</button>
+        <button class="primary" onclick="submitQuiz()">Submit Quiz</button>
+      </div>
+    </section>
+
+    <section id="results" class="page">
+      <h2>Quiz Results</h2>
+      <div id="resultSummary"></div>
+      <div id="answerReview" class="stack"></div>
+
+      <h3>AI Recommended Class Resources</h3>
+      <p class="section-note">For missed questions, the AI suggests exact class materials to review. When slide text is available, it tries to point to specific slide numbers or ranges.</p>
+      <div id="classRecommendations" class="stack"></div>
+
+      <h3>AI Recommended Web Resources</h3>
+      <p class="section-note">After class materials, the AI suggests useful web resources such as videos, diagrams, notes, and practice.</p>
+      <div id="webRecommendations" class="stack"></div>
+
+      <h3>AI Personal Study Plan</h3>
+      <div id="studyPlan" class="stack"></div>
+    </section>
+
+    <section id="settings" class="page">
+      <h2>Settings</h2>
+      <div class="settings-card">
+        <div>
+          <h3>Google Client ID</h3>
+          <p id="clientIdStatus">Checking config...</p>
+        </div>
+      </div>
+
+      <div class="settings-card danger-zone">
+        <div>
+          <h3>Delete Local Data</h3>
+          <p>This clears imported classes and quiz attempts from this browser. It does not delete anything from Google Classroom.</p>
+        </div>
+        <button class="danger" onclick="deleteLocalData()">Delete Local Data</button>
+      </div>
+    </section>
+  </main>
+
+
+  <div
+    id="questionAIOverlay"
+    class="question-ai-overlay hidden"
+    role="presentation"
+    onclick="if (event.target === this) closeQuestionAI()"
+  >
+    <aside
+      class="question-ai-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="questionAITitle"
+    >
+      <header class="question-ai-header">
+        <div>
+          <span class="question-ai-eyebrow">AI study help</span>
+          <h2 id="questionAITitle">Ask about this question</h2>
+        </div>
+        <button
+          type="button"
+          class="question-ai-close"
+          aria-label="Close AI study help"
+          onclick="closeQuestionAI()"
+        >×</button>
+      </header>
+
+      <section class="question-ai-context">
+        <span id="questionAITopic" class="tag">Quiz topic</span>
+        <h3 id="questionAIQuestion">Quiz question</h3>
+        <div class="question-ai-answer-grid">
+          <div>
+            <span>Your answer</span>
+            <strong id="questionAIStudentAnswer">No answer</strong>
+          </div>
+          <div>
+            <span>Correct answer</span>
+            <strong id="questionAICorrectAnswer">Not provided</strong>
+          </div>
+        </div>
+      </section>
+
+      <div id="questionAIMessages" class="question-ai-messages" aria-live="polite"></div>
+      <div id="questionAIStatus" class="question-ai-status" role="alert"></div>
+      <div id="questionAISuggestions" class="question-ai-suggestions"></div>
+
+      <form class="question-ai-composer" onsubmit="submitQuestionAIForm(event)">
+        <textarea
+          id="questionAIInput"
+          rows="2"
+          maxlength="1400"
+          placeholder="Ask a follow-up question..."
+          onkeydown="handleQuestionAIKeydown(event)"
+        ></textarea>
+        <button id="questionAISendButton" class="primary" type="submit">Send</button>
+      </form>
+    </aside>
+  </div>
+
+
+  <footer>
+    <p>ClassQuiz AI • Student-only • Google Classroom + Slides + Gemini AI test</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
